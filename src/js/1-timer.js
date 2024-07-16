@@ -4,7 +4,16 @@ import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
 let userSelectedDate;
-let countdownInterval;
+const startButton = document.querySelector('button[data-start]');
+const datetimePicker = document.getElementById('datetime-picker');
+const timerFields = {
+  days: document.querySelector('[data-days]'),
+  hours: document.querySelector('[data-hours]'),
+  minutes: document.querySelector('[data-minutes]'),
+  seconds: document.querySelector('[data-seconds]'),
+};
+
+startButton.disabled = true;
 
 const options = {
   enableTime: true,
@@ -12,33 +21,24 @@ const options = {
   defaultDate: new Date(),
   minuteIncrement: 1,
   onClose(selectedDates) {
-    const selectedDate = selectedDates[0];
-    if (selectedDate < new Date()) {
-      iziToast.error({
-        title: '',
-        message: 'Please choose a date in the future',
-      });
-      disableButton();
-    } else {
-      enableButton();
-      userSelectedDate = selectedDate;
-    }
+    console.log(selectedDates[0]);
+    handleDateSelection(selectedDates[0]);
   },
 };
-flatpickr('#datetime-picker', options);
 
-function disableButton() {
-  const button = document.querySelector('[data-start]');
-  button.disabled = true;
-}
+flatpickr(datetimePicker, options);
 
-function enableButton() {
-  const button = document.querySelector('[data-start]');
-  button.disabled = false;
-}
-
-function addLeadingZero(value) {
-  return value.toString().padStart(2, '0');
+function handleDateSelection(selectedDate) {
+  if (selectedDate < new Date()) {
+    iziToast.error({
+      title: 'Error',
+      message: 'Please choose a date in the future',
+    });
+    startButton.disabled = true;
+  } else {
+    userSelectedDate = selectedDate;
+    startButton.disabled = false;
+  }
 }
 
 function convertMs(ms) {
@@ -51,41 +51,41 @@ function convertMs(ms) {
   const hours = Math.floor((ms % day) / hour);
   const minutes = Math.floor(((ms % day) % hour) / minute);
   const seconds = Math.floor((((ms % day) % hour) % minute) / second);
+
   return { days, hours, minutes, seconds };
 }
 
-function updateTimer(days, hours, minutes, seconds) {
-  document.querySelector('[data-days]').textContent = days;
-  document.querySelector('[data-hours]').textContent = addLeadingZero(hours);
-  document.querySelector('[data-minutes]').textContent =
-    addLeadingZero(minutes);
-  document.querySelector('[data-seconds]').textContent =
-    addLeadingZero(seconds);
+function addLeadingZero(value) {
+  return String(value).padStart(2, '0');
 }
 
+function updateTimerInterface({ days, hours, minutes, seconds }) {
+  timerFields.days.textContent = addLeadingZero(days);
+  timerFields.hours.textContent = addLeadingZero(hours);
+  timerFields.minutes.textContent = addLeadingZero(minutes);
+  timerFields.seconds.textContent = addLeadingZero(seconds);
+}
+
+let timerInterval;
+
 function startTimer() {
-  disableButton();
-  document.querySelector('#datetime-picker').disabled = true;
+  startButton.disabled = true;
+  datetimePicker.disabled = true;
 
-  countdownInterval = setInterval(() => {
-    const now = new Date().getTime();
-    const distance = userSelectedDate.getTime() - now;
+  timerInterval = setInterval(() => {
+    const now = new Date();
+    const timeLeft = userSelectedDate - now;
 
-    if (distance <= 0) {
-      clearInterval(countdownInterval);
-      document.querySelector('#datetime-picker').disabled = false;
-      enableButton();
-      iziToast.error({
-        title: '',
-        message: 'Countdown finished',
-      });
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      updateTimerInterface({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      datetimePicker.disabled = false;
       return;
     }
 
-    const { days, hours, minutes, seconds } = convertMs(distance);
-    updateTimer(days, hours, minutes, seconds);
+    const time = convertMs(timeLeft);
+    updateTimerInterface(time);
   }, 1000);
 }
 
-document.querySelector('[data-start]').addEventListener('click', startTimer);
-disableButton();
+startButton.addEventListener('click', startTimer);
