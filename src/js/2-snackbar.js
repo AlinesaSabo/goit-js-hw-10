@@ -1,6 +1,6 @@
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
-import pathSprite from '../img/sprite.svg';
+import pathSprite from '/img/sprite.svg';
 
 document.querySelector('.form').addEventListener('submit', function (event) {
   event.preventDefault();
